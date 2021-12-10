@@ -1,0 +1,31 @@
+﻿<reactiveUi:ReactiveUserControl
+    x:TypeArguments="viewModels:DefaultScalesEditorViewModel"
+    x:Class="Rack.GeoSections.Views.DefaultScalesEditor"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:reactiveUi="http://reactiveui.net"
+    xmlns:viewModels="clr-namespace:Rack.GeoSections.ViewModels">
+    <StackPanel>
+        <ToolBar>
+            <Button x:Name="SaveButton"
+                    ToolTip="Сохранить масштабы">
+                <materialDesign:PackIcon Kind="ContentSave" />
+            </Button>
+        </ToolBar>
+        <GroupBox Header="Вертикальные масштабы по умолчанию">
+            <StackPanel>
+                <TextBox x:Name="DefaultVerticalScale1TextBox" />
+                <TextBox x:Name="DefaultVerticalScale2TextBox" />
+                <TextBox x:Name="DefaultVerticalScale3TextBox" />
+            </StackPanel>
+        </GroupBox>
+        <GroupBox Header="Горизонтальные масштабы по умолчанию">
+            <StackPanel>
+                <TextBox x:Name="DefaultHorizontalScale1TextBox" />
+                <TextBox x:Name="DefaultHorizontalScale2TextBox" />
+                <TextBox x:Name="DefaultHorizontalScale3TextBox"/>
+            </StackPanel>
+        </GroupBox>
+    </StackPanel>
+</reactiveUi:ReactiveUserControl>

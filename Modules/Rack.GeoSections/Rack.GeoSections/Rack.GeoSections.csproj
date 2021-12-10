@@ -1,0 +1,66 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <UseWPF>true</UseWPF>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AssemblyName>Rack.GeoSections</AssemblyName>
+    <RootNamespace>Rack.GeoSections</RootNamespace>
+    <LangVersion>8</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.95.3" />
+    <DotNetCliToolReference Include="dotnet-codegen" Version="0.4.88" />
+    <PackageReference Include="FluentValidation" Version="9.2.2" />
+    <PackageReference Include="GitVersionTask" Version="5.3.7">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="gong-wpf-dragdrop" Version="2.2.0" />
+    <PackageReference Include="MaterialDesignColors" Version="1.2.7" />
+    <PackageReference Include="MaterialDesignThemes" Version="3.2.0" />
+    <PackageReference Include="NetTopologySuite" Version="2.1.0" />
+    <PackageReference Include="NetTopologySuite.IO.GeoJSON" Version="2.0.4" />
+    <PackageReference Include="PropertyChanged.Fody" Version="3.2.9" />
+    <PackageReference Include="ReactiveUI.Events.WPF" Version="11.5.35" />
+    <PackageReference Include="ReactiveUI.Fody" Version="11.5.35" />
+    <PackageReference Include="ReactiveUI.WPF" Version="11.5.35" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="4.7.1" />
+    <PackageReference Include="UnitsNet" Version="4.72.0" />
+    <PackageReference Include="UnitsNet.Serialization.JsonNet" Version="4.2.0" />
+  </ItemGroup>
+
+    <ItemGroup>
+    <ProjectReference Include="..\..\..\Shell\Rack.CrossSectionUtils\Rack.CrossSectionUtils.csproj" />
+    <ProjectReference Include="..\..\..\Shell\Rack.GeoTools.Wpf\Rack.GeoTools.Wpf.csproj" />
+    <ProjectReference Include="..\..\..\Shell\Rack.GeoTools\Rack.GeoTools.csproj" />
+    <ProjectReference Include="..\..\..\Shell\Rack.Localization\Rack.Localization.csproj" />
+    <ProjectReference Include="..\..\..\Shell\Rack.Shared\Rack.Shared.csproj" />
+    <ProjectReference Include="..\..\..\Shell\Rack.Wpf\Rack.Wpf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="FodyWeavers.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="HelpFiles\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Localizations\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Changelogs\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Resources\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Localizations\" />
+    <Folder Include="Changelogs\" />
+    <Folder Include="Resources\" />
+  </ItemGroup>
+</Project>

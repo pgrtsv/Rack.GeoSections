@@ -1,0 +1,3 @@
+[submodule "Shell"]
+	path = Shell
+	url = https://Hatebearz@bitbucket.org/Hatebearz/rack.git

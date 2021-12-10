@@ -1,0 +1,542 @@
+﻿<reactiveUi:ReactiveUserControl
+    x:TypeArguments="viewModels:ShapeMakerViewModel"
+    x:Class="Rack.GeoSections.Views.ShapeMaker"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    x:Name="Root"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:model="clr-namespace:Rack.GeoSections.Model"
+    xmlns:converters="clr-namespace:Rack.Wpf.Converters;assembly=Rack.Wpf"
+    xmlns:reactiveUi="http://reactiveui.net"
+    xmlns:viewModels="clr-namespace:Rack.GeoSections.ViewModels"
+    xmlns:dataGridEditor="clr-namespace:Rack.Wpf.DataGridEditor;assembly=Rack.Wpf"
+    xmlns:views="clr-namespace:Rack.GeoSections.Views">
+    <UserControl.Resources>
+        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="IsReadOnly" Value="{Binding ViewModel.IsBusy, ElementName=Root}" />
+            <Setter Property="materialDesign:HintAssist.IsFloating" Value="True" />
+            <Setter Property="Margin" Value="5" />
+        </Style>
+        <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+            <Setter Property="IsEnabled"
+                    Value="{Binding DataContext.IsBusy, ElementName=Root, Converter={converters:InvertBoolConverter}}" />
+        </Style>
+        <Style TargetType="materialDesign:Card" BasedOn="{StaticResource {x:Type materialDesign:Card}}">
+            <Setter Property="Margin" Value="5" />
+        </Style>
+        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Style.Setters>
+                <Setter Property="IsReadOnly" Value="{Binding DataContext.IsBusy, ElementName=Root}" />
+                <Setter Property="materialDesign:HintAssist.IsFloating" Value="True" />
+                <Setter Property="Margin" Value="5" />
+            </Style.Setters>
+        </Style>
+        <Style TargetType="GroupBox" BasedOn="{StaticResource {x:Type GroupBox}}">
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <DataTemplate DataType="{x:Type model:DecorationColumnRecord}">
+            <TextBlock IsHitTestVisible="False">
+                <Run Text="{Binding Text, Mode=OneTime}" FontWeight="Bold" />
+                <Run Text=": " />
+                <Run Text="{Binding LeftTop, Mode=OneTime}" />
+                <Run Text=" — " />
+                <Run Text="{Binding LeftBottom, Mode=OneTime}" />
+                <Run Text=" слева, " />
+                <Run Text="{Binding RightTop, Mode=OneTime}" />
+                <Run Text=" — " />
+                <Run Text="{Binding RightBottom, Mode=OneTime}" />
+                <Run Text=" справа" />
+            </TextBlock>
+        </DataTemplate>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <ProgressBar
+            x:Name="ProgressBar"
+            DockPanel.Dock="Top"
+            IsIndeterminate="True"
+            Height="20" />
+        <DockPanel x:Name="StartWorkingDockPanel"
+                   Grid.Row="1"
+                   Visibility="Visible">
+            <GroupBox Header="История"
+                      DockPanel.Dock="Bottom"
+                      Margin="20"
+                      MinWidth="200"
+                      VerticalAlignment="Top"
+                      Style="{DynamicResource MaterialDesignCardGroupBox}">
+                <ListBox x:Name="HistoryListBox"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+            </GroupBox>
+            <TextBlock
+                Margin="20"
+                VerticalAlignment="Center"
+                TextWrapping="WrapWithOverflow"
+                HorizontalAlignment="Center"
+                TextAlignment="Center"
+                Style="{StaticResource MaterialDesignSubtitle1TextBlock}">
+                <Run Text="Чтобы начать построение разреза, " /><!--
+             --><Hyperlink x:Name="LoadExcelHyperlink" FontWeight="DemiBold">
+                    загрузите данные из файла Excel
+                </Hyperlink><!--
+             --><Run Text=", либо " /><!--
+             --><Hyperlink x:Name="CreateSampleHyperlink" FontWeight="DemiBold">
+                    создайте образец
+                </Hyperlink><!--
+             --><Run Text=" и заполните его." />
+                <Run Text="&#x0a;Не забывайте " /><!--
+             --><Hyperlink x:Name="OpenHelpHyperlink" FontWeight="DemiBold">
+                    пользоваться справкой (F1)
+                </Hyperlink><!--
+             --><Run Text="." />
+            </TextBlock>
+        </DockPanel>
+        <DockPanel x:Name="WorkingAreaDockPanel"
+                   Visibility="Collapsed"
+                   Grid.Row="1">
+            <ToolBarTray DockPanel.Dock="Top">
+                <ToolBar>
+                    <Button x:Name="GenerateExcelSampleButton"
+                            ToolTip="Создать образец файла с данными по скважинам">
+                        <materialDesign:PackIcon Kind="FilePlus" />
+                    </Button>
+                    <Button x:Name="LoadExcelFileButton"
+                            ToolTip="Загрузить другой Excel файл">
+                        <materialDesign:PackIcon Kind="FileExcel" />
+                    </Button>
+                    <Button
+                        x:Name="SaveProjectButton"
+                        ToolTip="Сохранить изменения в файл Excel">
+                        <materialDesign:PackIcon Kind="ContentSave" />
+                    </Button>
+                    <Button
+                        x:Name="GenerateFilesButton"
+                        ToolTip="Создать файлы для построения разреза">
+                        <materialDesign:PackIcon Kind="Export" />
+                    </Button>
+                    <Button
+                        x:Name="SerializeProjectButton"
+                        ToolTip="Сериализовать текущий проект в JSON">
+                        <materialDesign:PackIcon Kind="CodeJson" />
+                    </Button>
+                </ToolBar>
+            </ToolBarTray>
+            <ScrollViewer>
+                <StackPanel x:Name="EditingRoot">
+                    <GroupBox Header="Загруженные данные для построения">
+                        <StackPanel>
+                            <dataGridEditor:DataGridAdditionalHeader
+                                Header="Скважины">
+                                <dataGridEditor:DataGridAdditionalHeader.RightPanelContent>
+                                    <Button x:Name="ShowSectionLineButton"
+                                            ToolTip="Отобразить линию разреза">
+                                        <materialDesign:PackIcon Kind="ImageArea" />
+                                    </Button>
+                                </dataGridEditor:DataGridAdditionalHeader.RightPanelContent>
+                            </dataGridEditor:DataGridAdditionalHeader>
+                            <DataGrid
+                                x:Name="WellsDataGrid"
+                                AutoGenerateColumns="False"
+                                IsReadOnly="True">
+                                <DataGrid.Columns>
+                                    <DataGridCheckBoxColumn
+                                        Binding="{Binding IsEnabled, UpdateSourceTrigger=PropertyChanged}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridCheckBoxColumnStyle}"
+                                        EditingElementStyle="{StaticResource MaterialDesignDataGridCheckBoxColumnEditingStyle}"
+                                        IsReadOnly="False" />
+                                    <DataGridTextColumn
+                                        Header="Название"
+                                        Binding="{Binding Name, Mode=OneTime}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <DataGridTextColumn
+                                        Header="Альтитуда"
+                                        Binding="{Binding Altitude, Mode=OneTime}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <DataGridTextColumn
+                                        Header="X"
+                                        Binding="{Binding Point.Coordinate.X, Mode=OneTime}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <DataGridTextColumn
+                                        Header="Y"
+                                        Binding="{Binding Point.Coordinate.Y, Mode=OneTime}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <DataGridTextColumn
+                                        Header="Забой"
+                                        Binding="{Binding Bottom, Mode=OneTime}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <DataGridTemplateColumn
+                                        Header="Геофизика">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button
+                                                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
+                                                    ToolTip="Показать геофизику для скважины"
+                                                    Command="{Binding ViewModel.ShowGeophysicalDataCommand, ElementName=Root}"
+                                                    CommandParameter="{Binding}"
+                                                    Padding="2">
+                                                    <materialDesign:PackIcon Kind="AlphabetG" Width="22" Height="22" />
+                                                </Button>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <dataGridEditor:DataGridAdditionalHeader Header="Структурные карты">
+                                <dataGridEditor:DataGridAdditionalHeader.RightPanelContent>
+                                    <Button
+                                        x:Name="LoadGridFilesButton"
+                                        ToolTip="Загрузить структурные карты из грид файлов"
+                                        Command="{Binding LoadGridFilesCommand}"
+                                        HorizontalAlignment="Left">
+                                        <materialDesign:PackIcon Kind="Upload" />
+                                    </Button>
+                                </dataGridEditor:DataGridAdditionalHeader.RightPanelContent>
+                            </dataGridEditor:DataGridAdditionalHeader>
+                            <DataGrid
+                                x:Name="StructuralMapsDataGrid"
+                                IsReadOnly="True"
+                                AutoGenerateColumns="False">
+                                <DataGrid.Columns>
+                                    <materialDesign:DataGridTextColumn
+                                        Header="Название"
+                                        Binding="{Binding Name, Mode=OneTime}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <materialDesign:DataGridTextColumn
+                                        Header="X, мин."
+                                        Binding="{Binding Envelope.MinX, Mode=OneTime}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <materialDesign:DataGridTextColumn
+                                        Header="X, макс."
+                                        Binding="{Binding Envelope.MaxX, Mode=OneTime}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <materialDesign:DataGridTextColumn
+                                        Header="Y, мин."
+                                        Binding="{Binding Envelope.MinY, Mode=OneTime}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <materialDesign:DataGridTextColumn
+                                        Header="Y, макс."
+                                        Binding="{Binding Envelope.MaxY, Mode=OneTime}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <materialDesign:DataGridTextColumn
+                                        Header="Z, мин."
+                                        Binding="{Binding ZMin, Mode=OneTime}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <materialDesign:DataGridTextColumn
+                                        Header="Z, макс."
+                                        Binding="{Binding ZMax, Mode=OneTime}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <DataGridTemplateColumn>
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button
+                                                    Foreground="{DynamicResource ValidationErrorBrush}"
+                                                    Command="{Binding ViewModel.RemoveHorizonSurface, ElementName=Root}"
+                                                    CommandParameter="{Binding}"
+                                                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
+                                                    ToolTip="Удалить структурную карту"
+                                                    Padding="2"
+                                                    Width="22" Height="22">
+                                                    <materialDesign:PackIcon Kind="Remove" />
+                                                </Button>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <dataGridEditor:DataGridAdditionalHeader Header="Разбивки" />
+                            <DataGrid x:Name="BreaksDataGrid"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True" />
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Header="Параметры построения">
+                        <GroupBox.Resources>
+                            <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
+                                <Setter Property="VerticalAlignment" Value="Bottom" />
+                                <Setter Property="Margin" Value="5" />
+                                <Setter Property="IsTabStop" Value="False" />
+                                <Setter Property="ContextMenu">
+                                    <Setter.Value>
+                                        <ContextMenu>
+                                            <MenuItem
+                                                Header="Изменить"
+                                                Command="{Binding ViewModel.EditDefaultScales, Source={x:Reference Root}}" />
+                                        </ContextMenu>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </GroupBox.Resources>
+                        <StackPanel>
+                            <DockPanel>
+                                <Button
+                                    x:Name="SetVerticalScaleButton1"
+                                    DockPanel.Dock="Right" />
+                                <Button
+                                    x:Name="SetVerticalScaleButton2"
+                                    DockPanel.Dock="Right" />
+                                <Button
+                                    x:Name="SetVerticalScaleButton3"
+                                    DockPanel.Dock="Right" />
+                                <TextBox
+                                    x:Name="VerticalScaleTextBox"
+                                    materialDesign:HintAssist.Hint="Вертикальный масштаб" />
+                            </DockPanel>
+                            <DockPanel>
+                                <Button
+                                    x:Name="SetHorizontalScaleButton1"
+                                    DockPanel.Dock="Right" />
+                                <Button
+                                    x:Name="SetHorizontalScaleButton2"
+                                    DockPanel.Dock="Right" />
+                                <Button
+                                    x:Name="SetHorizontalScaleButton3"
+                                    DockPanel.Dock="Right" />
+                                <TextBox
+                                    x:Name="HorizontalScaleTextBox"
+                                    materialDesign:HintAssist.Hint="Горизонтальный масштаб" />
+                            </DockPanel>
+                            <TextBox
+                                x:Name="VerticalResolutionTextBox"
+                                materialDesign:HintAssist.Hint="Вертикальная частота дискретизации (кол-во точек в 1 см)" />
+                            <TextBox
+                                x:Name="HorizontalResolutionTextBox"
+                                materialDesign:HintAssist.Hint="Горизонтальная частота дискретизации (кол-во точек в 1 см)" />
+
+                            <TextBox
+                                x:Name="TopTextBox"
+                                materialDesign:HintAssist.Hint="Верхняя граница разреза (абс. отм.)" />
+                            <TextBox
+                                x:Name="BottomTextBox"
+                                materialDesign:HintAssist.Hint="Нижняя граница разреза (абс. отм.)" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox
+                                    x:Name="OffsetTextBox"
+                                    materialDesign:HintAssist.Hint="Дополнительный отступ от краёв разреза" />
+                                <ToggleButton
+                                    x:Name="IsOffsetScaledToggleButton"
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                    ToolTip="Задать отступ с учётом масштабирования">
+                                    <materialDesign:PackIcon
+                                        Kind="Equal" />
+                                    <materialDesign:ToggleButtonAssist.OnContent>
+                                        <materialDesign:PackIcon
+                                            Kind="Multiplication" />
+                                    </materialDesign:ToggleButtonAssist.OnContent>
+                                </ToggleButton>
+                            </Grid>
+
+                            <TextBox
+                                x:Name="DecorationColumnsWidthTextBox"
+                                materialDesign:HintAssist.Hint="Ширина колонок оформления" />
+                            <TextBox
+                                x:Name="DecorationHeadersHeightTextBox"
+                                materialDesign:HintAssist.Hint="Высота заголовков колонок оформления" />
+                            <ComboBox
+                                x:Name="DepthColumnModeComboBox"
+                                materialDesign:HintAssist.Hint="Режим отображения шкалы глубин" />
+                            <ComboBox
+                                x:Name="EncodingComboBox"
+                                materialDesign:HintAssist.Hint="Кодировка файлов" />
+                            <RichTextBox
+                                IsReadOnly="True"
+                                materialDesign:HintAssist.Hint="Информация о разрезе"
+                                materialDesign:HintAssist.IsFloating="True"
+                                Margin="5">
+                                <FlowDocument>
+                                    <Paragraph>
+                                        <Run x:Name="SectionInfoSizeHeaderRun"
+                                             FontWeight="DemiBold" />
+                                        <Run x:Name="SectionInfoSizeWidthRun" />
+                                        <Run Text="x" />
+                                        <Run x:Name="SectionInfoSizeHeightRun" /><!--
+                                     --><Run Text="." />
+                                    </Paragraph>
+                                    <Paragraph>
+                                        <Run x:Name="SectionInfoFullSizeHeaderRun"
+                                             FontWeight="DemiBold" />
+                                        <Run x:Name="SectionInfoFullSizeWidthRun" />
+                                        <Run Text="x" />
+                                        <Run x:Name="SectionInfoFullSizeHeightRun" /><!--
+                                     --><Run Text="." />
+                                    </Paragraph>
+                                    <Paragraph>
+                                        <Run x:Name="SectionInfoResolutionCountHeaderRun"
+                                             FontWeight="DemiBold" />
+                                        <Run x:Name="SectionInfoResolutionCountHorizontalRun" />
+                                        <Run Text="x" />
+                                        <Run x:Name="SectionInfoResolutionCountVerticalRun" /><!--
+                                     --><Run Text="." />
+                                    </Paragraph>
+                                </FlowDocument>
+                            </RichTextBox>
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Header="Дополнительные элементы оформления">
+                        <StackPanel>
+                            <dataGridEditor:DataGridAdditionalHeader
+                                Header="Колонки оформления"
+                                Height="53" />
+                            <DataGrid
+                                x:Name="DecorationColumnsDataGrid"
+                                AutoGenerateColumns="False"
+                                IsReadOnly="True">
+                                <DataGrid.Columns>
+                                    <materialDesign:DataGridComboBoxColumn
+                                        Header="Режим отображения"
+                                        IsReadOnly="False"
+                                        SelectedValueBinding="{Binding Mode, UpdateSourceTrigger=PropertyChanged}"
+                                        ItemsSourceBinding="{Binding ViewModel.AvailableModes, ElementName=Root}"
+                                        SelectedValuePath="Mode"
+                                        DisplayMemberPath="Name" />
+                                    <materialDesign:DataGridTextColumn
+                                        Header="Заголовок"
+                                        Binding="{Binding Header, Mode=OneTime}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <DataGridTemplateColumn
+                                        Header="Элементы колонки">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <ItemsControl
+                                                    ItemsSource="{Binding Records, Mode=OneTime}" />
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <dataGridEditor:DataGridAdditionalHeader Header="Нефтеносные пласты">
+                                <dataGridEditor:DataGridAdditionalHeader.RightPanelContent>
+                                    <Button x:Name="AddOilBearingFormationButton"
+                                            ToolTip="Добавить нефтеносный пласт">
+                                        <materialDesign:PackIcon Kind="Add" />
+                                    </Button>
+                                </dataGridEditor:DataGridAdditionalHeader.RightPanelContent>
+                            </dataGridEditor:DataGridAdditionalHeader>
+                            <DataGrid
+                                x:Name="OilBearingFormationsDataGrid"
+                                AutoGenerateColumns="False"
+                                IsReadOnly="True"
+                                RowStyle="{StaticResource DataGridRowWithEditor}">
+                                <dataGridEditor:DataGridEditorAssist.DataTemplate>
+                                    <DataTemplate DataType="{x:Type model:OilBearingFormation}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <ComboBox
+                                                materialDesign:HintAssist.Hint="Верхняя разбивка"
+                                                ItemsSource="{Binding ViewModel.BuildProject.Breaks, ElementName=Root}"
+                                                SelectedItem="{Binding TopBreak, UpdateSourceTrigger=PropertyChanged}"
+                                                DisplayMemberPath="Name"
+                                                Margin="20" />
+                                            <ComboBox
+                                                Grid.Column="1"
+                                                materialDesign:HintAssist.Hint="Нижняя разбивка"
+                                                ItemsSource="{Binding ViewModel.BuildProject.Breaks, ElementName=Root}"
+                                                SelectedItem="{Binding BottomBreak, UpdateSourceTrigger=PropertyChanged}"
+                                                DisplayMemberPath="Name"
+                                                Margin="20" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </dataGridEditor:DataGridEditorAssist.DataTemplate>
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn
+                                        CellTemplate="{StaticResource DataGridIsEditingColumnCellTemplate}" />
+                                    <materialDesign:DataGridTextColumn
+                                        Header="Верхняя разбивка"
+                                        Binding="{Binding TopBreak.Name}" />
+                                    <materialDesign:DataGridTextColumn
+                                        Header="Нижняя разбивка"
+                                        Binding="{Binding BottomBreak.Name}" />
+                                    <DataGridTemplateColumn>
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button
+                                                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
+                                                    ToolTip="Удалить нефтеносный пласт"
+                                                    Command="{Binding ViewModel.RemoveOilBearingFormation, ElementName=Root}"
+                                                    CommandParameter="{Binding}">
+                                                    <materialDesign:PackIcon
+                                                        Kind="Remove"
+                                                        Foreground="{StaticResource ValidationErrorBrush}" 
+                                                        Width="20"
+                                                        Height="20"/>
+                                                </Button>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <dataGridEditor:DataGridAdditionalHeader Header="Подписи на скважинах">
+                                <dataGridEditor:DataGridAdditionalHeader.RightPanelContent>
+                                    <Button x:Name="AddWellLabelButton"
+                                            ToolTip="Добавить подпись на скважину">
+                                        <materialDesign:PackIcon Kind="Add" />
+                                    </Button>
+                                </dataGridEditor:DataGridAdditionalHeader.RightPanelContent>
+                            </dataGridEditor:DataGridAdditionalHeader>
+                            <DataGrid x:Name="WellLabelsDataGrid"
+                                      AutoGenerateColumns="False"
+                                      IsReadOnly="True"
+                                      RowStyle="{StaticResource DataGridRowWithEditor}">
+                                <dataGridEditor:DataGridEditorAssist.DataTemplate>
+                                    <DataTemplate DataType="{x:Type model:WellLabel}">
+                                        <views:WellLabelEditor
+                                            Wells="{Binding ViewModel.BuildProject.Wells, ElementName=Root}"
+                                            ViewModel="{Binding Mode=OneTime}" />
+                                    </DataTemplate>
+                                </dataGridEditor:DataGridEditorAssist.DataTemplate>
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn
+                                        CellTemplate="{StaticResource DataGridIsEditingColumnCellTemplate}" />
+                                    <materialDesign:DataGridTextColumn
+                                        Header="Скважина"
+                                        Binding="{Binding Well}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <DataGridTextColumn
+                                        Header="Верхняя граница"
+                                        Binding="{Binding Top}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <DataGridTextColumn
+                                        Header="Нижняя граница"
+                                        Binding="{Binding Bottom}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <DataGridTextColumn
+                                        Header="Текст подписи"
+                                        Binding="{Binding Text}"
+                                        ElementStyle="{StaticResource MaterialDesignDataGridTextColumnStyle}" />
+                                    <DataGridTemplateColumn>
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button
+                                                    Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
+                                                    ToolTip="Удалить подпись"
+                                                    Command="{Binding ViewModel.RemoveWellLabel, ElementName=Root}"
+                                                    CommandParameter="{Binding}">
+                                                    <materialDesign:PackIcon
+                                                        Kind="Remove"
+                                                        Foreground="{StaticResource ValidationErrorBrush}"
+                                                        Width="20"
+                                                        Height="20" />
+                                                </Button>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
+            </ScrollViewer>
+        </DockPanel>
+    </Grid>
+</reactiveUi:ReactiveUserControl>

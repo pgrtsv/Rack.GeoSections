@@ -1,0 +1,17 @@
+﻿<reactiveUi:ReactiveUserControl
+    x:TypeArguments="viewModels:GeophysicalViewerViewModel"
+    x:Class="Rack.GeoSections.Views.GeophysicalViewer"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:reactiveUi="http://reactiveui.net"
+    xmlns:viewModels="clr-namespace:Rack.GeoSections.ViewModels">
+    <DataGrid x:Name="GeophysicalTestsDataGrid"
+              IsReadOnly="True"
+              AutoGenerateColumns="False">
+        <DataGrid.Columns>
+            <DataGridTextColumn Header="Кровля" Binding="{Binding Top, Mode=OneTime}" />
+            <DataGridTextColumn Header="Подошва" Binding="{Binding Bottom, Mode=OneTime}" />
+            <DataGridTextColumn Header="ПС" Binding="{Binding Value, Mode=OneTime}" />
+        </DataGrid.Columns>
+    </DataGrid>
+</reactiveUi:ReactiveUserControl>
